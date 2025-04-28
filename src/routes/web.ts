@@ -1,11 +1,15 @@
+// routes/index.js
 import express from 'express'
-import { getHomePage, getABC, getSample } from '../controllers/homeController'
+import userRoutes from './api'
+// You can add other route imports here like:
+// import productRoutes from './product.routes'
+
 const router = express.Router()
 
-router.get('/', getHomePage)
-
-router.get('/abc', getABC)
-
-router.get('/sample', getSample)
+// Mount resource-specific routes
+router.use('/users', userRoutes)
+// router.use('/products', productRoutes)
+// router.use('/categories', categoryRoutes)
+// etc.
 
 export default router
