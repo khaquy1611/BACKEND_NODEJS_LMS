@@ -1,5 +1,4 @@
 import { Request, Response } from 'express'
-import connection from '../config/database'
 
 const getHomePage = (req: Request, res: Response) => {
   res.send('Hello Word!!')

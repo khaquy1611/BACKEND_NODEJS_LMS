@@ -1,17 +1,19 @@
-import mysql from 'mysql2'
+import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 
 dotenv.config()
-const connection = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT) || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'test',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  debug: false
-})
+const dbUrl = process.env.DB_MONGO_URL || ''
 
-export default connection
+const connectDB = async () => {
+  try {
+    await mongoose.connect(dbUrl).then((data) => {
+      console.log(`Database connected with: ${data.connection.host}`)
+    })
+  } catch (error: unknown) {
+    console.error('MongoDB connection error:', error instanceof Error ? error.message : error)
+    setTimeout(connectDB, 5000) // Retry connection after 5 seconds
+    process.exit(1) // Exit the process with failure
+  }
+}
+
+export default connectDB

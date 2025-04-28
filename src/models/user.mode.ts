@@ -1,0 +1,84 @@
+import mongoose, { Document, Model } from 'mongoose'
+import bcrypt from 'bcryptjs'
+
+// Regex pattern cho email
+const emailRegexPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+
+export interface IUser extends Document {
+  name: string
+  email: string
+  password: string
+  avatar: {
+    public_id: string
+    url: string
+  }
+  role: string
+  isVerified: boolean
+  course: Array<{ courseId: string }>
+  comparePassword: (password: string) => Promise<boolean>
+}
+
+const userSchema = new mongoose.Schema<IUser>(
+  {
+    name: {
+      type: String,
+      required: [true, 'Please enter your name'],
+      trim: true,
+      maxLength: [30, 'Name cannot exceed 30 characters']
+    },
+    email: {
+      type: String,
+      required: [true, 'Please enter your email'],
+      unique: true,
+      match: [emailRegexPattern, 'Please enter a valid email address']
+    },
+    password: {
+      type: String,
+      required: [true, 'Please enter your password'],
+      minLength: [6, 'Password must be at least 6 characters'],
+      select: false
+    },
+    avatar: {
+      public_id: {
+        type: String,
+        required: true
+      },
+      url: {
+        type: String,
+        required: true
+      },
+      role: {
+        type: String,
+        default: 'user',
+        enum: ['user', 'admin']
+      },
+      isVerified: {
+        type: Boolean,
+        default: false
+      },
+      course: [
+        {
+          courseId: {
+            type: String
+          }
+        }
+      ]
+    }
+  },
+  { timestamps: true }
+)
+// Hash password before saving to database
+userSchema.pre('save', async function (this: IUser, next) {
+  if (!this.isModified('password')) return next()
+
+  this.password = await bcrypt.hash(this.password, 10)
+  next()
+})
+
+// compare password
+userSchema.methods.comparePassword = async function (this: IUser, password: string): Promise<boolean> {
+  return await bcrypt.compare(password, this.password)
+}
+
+const userModel: Model<IUser> = mongoose.model('User', userSchema)
+export default userModel
