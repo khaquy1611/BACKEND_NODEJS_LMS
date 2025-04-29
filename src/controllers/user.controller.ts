@@ -2,11 +2,11 @@ import { Request, Response, NextFunction } from 'express'
 import userModel, { IUser } from './../models/user.mode'
 import ErrorHandler from '~/errors/ErrorHandler'
 import catchAsyncErrors from '~/middleware/catchAsyncErrors'
-import { IActivationRequest, IRegistrationBody } from '~/types'
+import { IActivationRequest, ILoginRequest, IRegistrationBody } from '~/types'
 import { createActivationToken, verifyActivationToken } from '~/helpers'
 import path from 'path'
 import ejs from 'ejs'
-import { sendEmail } from '~/utils'
+import { sendEmail, sendToken } from '~/utils'
 
 export const registerUser = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -65,10 +65,46 @@ export const activateUser = catchAsyncErrors(async (req: Request, res: Response,
       email,
       password
     })
-    res.status(201).json({
+    if (user) {
+      res.status(201).json({
+        success: true,
+        message: 'User activated successfully'
+      })
+    }
+  } catch (error: any) {
+    return next(new ErrorHandler(`${error.message}`, 400))
+  }
+})
+
+export const loginUser = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, password }: ILoginRequest = req.body
+    if (!email || !password) {
+      return next(new ErrorHandler('Please provide email and password', 400))
+    }
+    const user = await userModel.findOne({ email }).select('+password')
+    if (!user) {
+      return next(new ErrorHandler('Invalid email or password', 400))
+    }
+    const isPasswordMatch = await user.comparePassword(password)
+    if (!isPasswordMatch) {
+      return next(new ErrorHandler('Invalid email or password', 400))
+    }
+
+    sendToken(user, 200, res, 'Login successful')
+  } catch (error: any) {
+    return next(new ErrorHandler(`${error.message}`, 400))
+  }
+})
+
+// logout user
+export const logoutUser = catchAsyncErrors(async (_: Request, res: Response, next: NextFunction) => {
+  try {
+    res.cookie('access_token', '', { maxAge: 1 })
+    res.cookie('refresh_token', '', { maxAge: 1 })
+    res.status(200).json({
       success: true,
-      message: 'User activated successfully',
-      user
+      message: 'Logout successful'
     })
   } catch (error: any) {
     return next(new ErrorHandler(`${error.message}`, 400))

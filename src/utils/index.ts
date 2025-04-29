@@ -1,9 +1,12 @@
-import dotenv from 'dotenv'
-dotenv.config()
+import { Response } from 'express'
 import nodemailer, { Transporter } from 'nodemailer'
 import ejs from 'ejs'
 import path from 'path'
-import { EmailOptions } from '~/types'
+import { EmailOptions, ITokenOptions } from '~/types'
+import { IUser } from '~/models/user.mode'
+import dotenv from 'dotenv'
+import { redis } from '~/config/redis'
+dotenv.config()
 
 export const sendEmail = async (options: EmailOptions) => {
   const transpoter: Transporter = nodemailer.createTransport({
@@ -36,5 +39,43 @@ export const sendEmail = async (options: EmailOptions) => {
     } else {
       console.log('Email sent:', info.response)
     }
+  })
+}
+
+export const sendToken = async (user: IUser, statusCode: number, res: Response, message: string) => {
+  const accessToken = user.SignAccessToken()
+  const refreshToken = user.SignRefreshToken()
+
+  redis.set(user._id.toString(), JSON.stringify(user))
+
+  const accessTokenExpire = parseInt((process.env.ACCESS_TOKEN_EXPIRE as string) || '300', 10)
+  const refreshTokenExpire = parseInt((process.env.REFRESH_TOKEN_EXPIRE as string) || '1200', 10)
+
+  const accessTokenOptions: ITokenOptions = {
+    expires: new Date(Date.now() + accessTokenExpire * 1000),
+    maxAge: accessTokenExpire * 1000,
+    httpOnly: true,
+    sameSite: 'lax'
+  }
+
+  const refreshTokenOptions: ITokenOptions = {
+    expires: new Date(Date.now() + refreshTokenExpire * 1000),
+    maxAge: refreshTokenExpire * 1000,
+    httpOnly: true,
+    sameSite: 'lax'
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    accessTokenOptions.secure = true
+    refreshTokenOptions.secure = true
+  }
+  res.cookie('access_token', accessToken, accessTokenOptions)
+  res.cookie('refresh_token', refreshToken, refreshTokenOptions)
+
+  res.status(statusCode).json({
+    success: true,
+    message: message,
+    user,
+    accessToken
   })
 }
