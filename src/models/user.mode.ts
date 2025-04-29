@@ -80,11 +80,11 @@ userSchema.pre('save', async function (this: IUser, next) {
 
 // Sign access token
 userSchema.methods.SignAccessToken = function (this: IUser): string {
-  return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN_SECRET! || '', { expiresIn: '40s' })
+  return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN_SECRET! || '', { expiresIn: '5m' })
 }
 // Sign refresh token
 userSchema.methods.SignRefreshToken = function (this: IUser): string {
-  return jwt.sign({ id: this._id }, process.env.REFRESH_TOKEN_SECRET! || '', { expiresIn: '40s' })
+  return jwt.sign({ id: this._id }, process.env.REFRESH_TOKEN_SECRET! || '', { expiresIn: '3d' })
 }
 // compare password
 userSchema.methods.comparePassword = async function (this: IUser, password: string): Promise<boolean> {

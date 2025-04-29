@@ -2,10 +2,11 @@ import { Response } from 'express'
 import nodemailer, { Transporter } from 'nodemailer'
 import ejs from 'ejs'
 import path from 'path'
-import { EmailOptions, ITokenOptions } from '~/types'
+import { EmailOptions } from '~/types'
 import { IUser } from '~/models/user.mode'
 import dotenv from 'dotenv'
 import { redis } from '~/config/redis'
+import { accessTokenOptions, refreshTokenOptions } from '~/config'
 dotenv.config()
 
 export const sendEmail = async (options: EmailOptions) => {
@@ -47,23 +48,6 @@ export const sendToken = async (user: IUser, statusCode: number, res: Response, 
   const refreshToken = user.SignRefreshToken()
 
   redis.set(user._id.toString(), JSON.stringify(user))
-
-  const accessTokenExpire = parseInt((process.env.ACCESS_TOKEN_EXPIRE as string) || '300', 10)
-  const refreshTokenExpire = parseInt((process.env.REFRESH_TOKEN_EXPIRE as string) || '1200', 10)
-
-  const accessTokenOptions: ITokenOptions = {
-    expires: new Date(Date.now() + accessTokenExpire * 1000),
-    maxAge: accessTokenExpire * 1000,
-    httpOnly: true,
-    sameSite: 'lax'
-  }
-
-  const refreshTokenOptions: ITokenOptions = {
-    expires: new Date(Date.now() + refreshTokenExpire * 1000),
-    maxAge: refreshTokenExpire * 1000,
-    httpOnly: true,
-    sameSite: 'lax'
-  }
 
   if (process.env.NODE_ENV === 'production') {
     accessTokenOptions.secure = true
