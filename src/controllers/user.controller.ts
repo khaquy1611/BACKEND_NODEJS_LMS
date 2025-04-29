@@ -2,7 +2,14 @@ import { Request, Response, NextFunction } from 'express'
 import userModel, { IUser } from './../models/user.mode'
 import ErrorHandler from '~/errors/ErrorHandler'
 import catchAsyncErrors from '~/middleware/catchAsyncErrors'
-import { IActivationRequest, ILoginRequest, IRegistrationBody, ISocialAuthBody } from '~/types'
+import {
+  IActivationRequest,
+  ILoginRequest,
+  IRegistrationBody,
+  ISocialAuthBody,
+  IUpdatePassWord,
+  IUpdateUserInfo
+} from '~/types'
 import { createActivationToken, verifyActivationToken } from '~/helpers'
 import path from 'path'
 import ejs from 'ejs'
@@ -11,6 +18,7 @@ import { redis } from '~/config/redis'
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { accessTokenOptions, refreshTokenOptions } from '~/config'
 import { getUserById } from '~/services/user.services'
+import cloudinary from 'cloudinary'
 
 export const registerUser = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -138,6 +146,9 @@ export const updateAccessToken = catchAsyncErrors(async (req: Request, res: Resp
     const refreshToken = jwt.sign({ id: user._id }, process.env.REFRESH_TOKEN_SECRET as string, {
       expiresIn: '3d'
     })
+
+    req.user = user
+
     res.cookie('access_token', accessToken, accessTokenOptions)
     res.cookie('refresh_token', refreshToken, refreshTokenOptions)
     res.status(200).json({
@@ -154,6 +165,9 @@ export const updateAccessToken = catchAsyncErrors(async (req: Request, res: Resp
 export const getUserInffo = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?._id
+    if (!userId) {
+      return next(new ErrorHandler('User ID not found', 400))
+    }
     getUserById(userId, res)
   } catch (error: any) {
     return next(new ErrorHandler(error.message, 400))
@@ -185,4 +199,118 @@ export const socialAuth = catchAsyncErrors(async (req: Request, res: Response, n
   }
 })
 
-// update user info , password , avatar
+// update user info
+
+export const updateUserInfo = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, email } = req.body as IUpdateUserInfo
+    const userId = req.user?._id
+    if (!userId) {
+      return next(new ErrorHandler('User ID not found', 400))
+    }
+    const user = await userModel.findById(userId)
+    if (!user) {
+      return next(new ErrorHandler('User not found', 404))
+    }
+
+    if (email && user) {
+      const isEmailExist = await userModel.findOne({ email })
+      if (isEmailExist) {
+        return next(new ErrorHandler('Email already exist', 400))
+      }
+      user.email = email
+    }
+    if (name && user) {
+      user.name = name
+    }
+    await user?.save()
+    await redis.set(userId.toString(), JSON.stringify(user))
+    res.status(200).json({
+      success: true,
+      user
+    })
+  } catch (error: any) {
+    return next(new ErrorHandler(error.message, 400))
+  }
+})
+
+// update user password
+export const updatePassWord = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { oldPassWord, newPassWord } = req.body as IUpdatePassWord
+    if (!oldPassWord || !newPassWord) {
+      return next(new ErrorHandler('Please enter old or new password', 400))
+    }
+    const userId = req.user?._id
+    if (!userId) {
+      return next(new ErrorHandler('User ID not found', 400))
+    }
+    const user = await userModel.findById(userId).select('+password')
+    if (!user) {
+      return next(new ErrorHandler('User not found', 404))
+    }
+    if (user?.password === undefined) {
+      return next(new ErrorHandler('Invalid User', 400))
+    }
+    const isPasswordMatch = await user?.comparePassword(oldPassWord)
+    if (!isPasswordMatch) {
+      return next(new ErrorHandler('Invalid old Password', 400))
+    }
+    user.password = newPassWord
+    await user.save()
+    await redis.set(userId, JSON.stringify(user))
+    res.status(200).json({
+      success: true,
+      user
+    })
+  } catch (error: any) {
+    return next(new ErrorHandler(error.message, 400))
+  }
+})
+
+// update profile avartar
+export const updateProfilePicture = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { avatar } = req.body
+    const userId = req.user?._id
+    if (!userId) {
+      return next(new ErrorHandler('User ID not found', 400))
+    }
+    const user = await userModel.findById(userId)
+    if (!user) {
+      return next(new ErrorHandler('User not found', 404))
+    }
+    if (avatar && user) {
+      if (user?.avatar?.public_id) {
+        // fisrt delete the old image
+        await cloudinary.v2.uploader.destroy(user?.avatar?.public_id)
+
+        const myCloud = await cloudinary.v2.uploader.upload(avatar, {
+          folder: 'avatars',
+          width: 150
+        })
+        user.avatar = {
+          public_id: myCloud.public_id,
+          url: myCloud.secure_url
+        }
+      } else {
+        const myCloud = await cloudinary.v2.uploader.upload(avatar, {
+          folder: 'avatars',
+          width: 150
+        })
+        user.avatar = {
+          public_id: myCloud.public_id,
+          url: myCloud.secure_url
+        }
+      }
+    }
+    await user?.save()
+    await redis.set(userId, JSON.stringify(user))
+    res.status(200).json({
+      success: true,
+      user
+    })
+  } catch (error: any) {
+    return next(new ErrorHandler(error.message, 400))
+  }
+})

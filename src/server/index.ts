@@ -3,6 +3,7 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import webRoutes from '~/routes/web'
 import ErrorMiddleWare from '~/middleware/error'
+import { v2 as cloudinary } from 'cloudinary'
 
 const createServer = () => {
   const app = express()
@@ -39,7 +40,12 @@ const createServer = () => {
       optionsSuccessStatus: 204
     })
   )
-
+  // Clodinary config
+  cloudinary.config({
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.CLOUD_API_KEY,
+    api_secret: process.env.CLOUD_SECRET_KEY
+  })
   // API routes
   app.use('/api/v1', webRoutes)
 
