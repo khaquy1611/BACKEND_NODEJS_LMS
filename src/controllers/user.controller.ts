@@ -7,6 +7,7 @@ import { createActivationToken, verifyActivationToken } from '~/helpers'
 import path from 'path'
 import ejs from 'ejs'
 import { sendEmail, sendToken } from '~/utils'
+import { redis } from '~/config/redis'
 
 export const registerUser = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -98,10 +99,12 @@ export const loginUser = catchAsyncErrors(async (req: Request, res: Response, ne
 })
 
 // logout user
-export const logoutUser = catchAsyncErrors(async (_: Request, res: Response, next: NextFunction) => {
+export const logoutUser = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
   try {
     res.cookie('access_token', '', { maxAge: 1 })
     res.cookie('refresh_token', '', { maxAge: 1 })
+    const userId = req.user?._id || ''
+    redis.del(userId)
     res.status(200).json({
       success: true,
       message: 'Logout successful'
