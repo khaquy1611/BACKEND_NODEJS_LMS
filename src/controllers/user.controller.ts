@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import userModel, { IUser } from './../models/user.mode'
 import ErrorHandler from '~/errors/ErrorHandler'
 import catchAsyncErrors from '~/middleware/catchAsyncErrors'
-import { IActivationRequest, ILoginRequest, IRegistrationBody } from '~/types'
+import { IActivationRequest, ILoginRequest, IRegistrationBody, ISocialAuthBody } from '~/types'
 import { createActivationToken, verifyActivationToken } from '~/helpers'
 import path from 'path'
 import ejs from 'ejs'
@@ -10,6 +10,7 @@ import { sendEmail, sendToken } from '~/utils'
 import { redis } from '~/config/redis'
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { accessTokenOptions, refreshTokenOptions } from '~/config'
+import { getUserById } from '~/services/user.services'
 
 export const registerUser = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -148,3 +149,40 @@ export const updateAccessToken = catchAsyncErrors(async (req: Request, res: Resp
     return next(new ErrorHandler(`${error.message}`, 400))
   }
 })
+
+// get user info
+export const getUserInffo = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?._id
+    getUserById(userId, res)
+  } catch (error: any) {
+    return next(new ErrorHandler(error.message, 400))
+  }
+})
+
+// social auth
+export const socialAuth = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, name, avatar } = req.body as ISocialAuthBody
+    if (!email || !name) {
+      return next(new ErrorHandler('Email and name are required for social authentication', 400))
+    }
+    const user = await userModel.findOne({ email })
+    if (!user) {
+      const randomPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).toUpperCase().slice(-4)
+      const newUser = await userModel.create({
+        email,
+        name,
+        password: randomPassword,
+        avatar: avatar || {}
+      })
+      sendToken(newUser, 200, res, 'success')
+    } else {
+      sendToken(user, 200, res, 'success')
+    }
+  } catch (error: any) {
+    return next(new ErrorHandler(error.message, 400))
+  }
+})
+
+// update user info , password , avatar

@@ -49,24 +49,24 @@ const userSchema = new mongoose.Schema<IUser>(
       },
       url: {
         type: String
-      },
-      role: {
-        type: String,
-        default: 'user',
-        enum: ['user', 'admin']
-      },
-      isVerified: {
-        type: Boolean,
-        default: false
-      },
-      course: [
-        {
-          courseId: {
-            type: String
-          }
+      }
+    },
+    role: {
+      type: String,
+      default: 'user',
+      enum: ['user', 'admin']
+    },
+    isVerified: {
+      type: Boolean,
+      default: false
+    },
+    course: [
+      {
+        courseId: {
+          type: String
         }
-      ]
-    }
+      }
+    ]
   },
   { timestamps: true }
 )
