@@ -1,3 +1,5 @@
+import { IUser } from "~/models/user.mode"
+
 export interface IRegistrationBody {
   name: string
   email: string
@@ -16,4 +18,14 @@ export interface EmailOptions {
   template: string
   html?: string
   data: { [key: string]: any }
+}
+
+export interface IActivationRequest {
+  activation_token: string
+  activation_code: string
+}
+
+export interface DecodedToken {
+  user: IUser
+  activationCode: string
 }
