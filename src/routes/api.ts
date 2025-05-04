@@ -9,7 +9,9 @@ import {
   socialAuth,
   updateUserInfo,
   updatePassWord,
-  updateProfilePicture
+  updateProfilePicture,
+  forgotPassword,
+  resetPassword
 } from '../controllers/user.controller'
 import { isAuthenticated } from '~/middleware/auth'
 const router = express.Router()
@@ -24,5 +26,7 @@ router.post('/socialAuth', socialAuth)
 router.put('/update-user-info', isAuthenticated, updateUserInfo)
 router.put('/update-user-password', isAuthenticated, updatePassWord)
 router.put('/updated-profile', isAuthenticated, updateProfilePicture)
+router.post('/password/forgot', forgotPassword)
+router.post('/password/reset', resetPassword)
 
 export default router

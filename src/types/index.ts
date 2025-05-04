@@ -58,3 +58,12 @@ export interface IUpdatePassWord {
   oldPassWord: string
   newPassWord: string
 }
+
+export interface IForgotPasswordRequest {
+  email: string
+}
+
+export interface IResetPasswordRequest {
+  resetToken: string
+  password: string
+}

@@ -4,8 +4,10 @@ import ErrorHandler from '~/errors/ErrorHandler'
 import catchAsyncErrors from '~/middleware/catchAsyncErrors'
 import {
   IActivationRequest,
+  IForgotPasswordRequest,
   ILoginRequest,
   IRegistrationBody,
+  IResetPasswordRequest,
   ISocialAuthBody,
   IUpdatePassWord,
   IUpdateUserInfo
@@ -309,6 +311,101 @@ export const updateProfilePicture = catchAsyncErrors(async (req: Request, res: R
     res.status(200).json({
       success: true,
       user
+    })
+  } catch (error: any) {
+    return next(new ErrorHandler(error.message, 400))
+  }
+})
+
+// forgot password
+export const forgotPassword = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email } = req.body as IForgotPasswordRequest
+    if (!email) {
+      return next(new ErrorHandler('Please provide an email', 400))
+    }
+    const user = await userModel.findOne({ email })
+    if (!user) {
+      return next(new ErrorHandler('User with this email does not exist', 404))
+    }
+    // Generate reset token
+    const resetToken = jwt.sign({ id: user._id }, process.env.RESET_PASSWORD_SECRET as string, { expiresIn: '15m' })
+    await redis.set(`resetToken:${user._id}`, resetToken, 'EX', 60 * 15)
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`
+    const data = {
+      user: { name: user.name },
+      resetUrl
+    }
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: 'Reset Your Password',
+        template: 'reset-password.ejs',
+        data
+      })
+
+      res.status(200).json({
+        success: true,
+        message: 'Password reset email sent successfully'
+      })
+    } catch (error: any) {
+      // If email sending fails, remove token from Redis
+      await redis.del(`resetToken:${user._id}`)
+      return next(new ErrorHandler(`Failed to send email: ${error.message}`, 500))
+    }
+  } catch (error: any) {
+    return next(new ErrorHandler(error.message, 400))
+  }
+})
+
+// Reset password using token
+export const resetPassword = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { resetToken, password }: IResetPasswordRequest = req.body
+
+    if (!resetToken || !password) {
+      return next(new ErrorHandler('Reset token and new password are required', 400))
+    }
+
+    // Verify token
+    let decoded
+    try {
+      decoded = jwt.verify(resetToken, process.env.RESET_PASSWORD_SECRET as string) as JwtPayload
+    } catch (error: any) {
+      return next(new ErrorHandler('Invalid or expired reset token', 400))
+    }
+
+    if (!decoded || !decoded.id) {
+      return next(new ErrorHandler('Invalid reset token', 400))
+    }
+
+    const userId = decoded.id
+
+    // Check if reset token exists in Redis
+    const storedToken = await redis.get(`resetToken:${userId}`)
+    if (!storedToken || storedToken !== resetToken) {
+      return next(new ErrorHandler('Reset token is invalid or has expired', 400))
+    }
+
+    // Find user
+    const user = await userModel.findById(userId)
+    if (!user) {
+      return next(new ErrorHandler('User not found', 404))
+    }
+
+    // Update password
+    user.password = password
+    await user.save()
+
+    // Remove reset token from Redis
+    await redis.del(`resetToken:${userId}`)
+
+    // Update user in Redis cache
+    await redis.set(userId, JSON.stringify(user))
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset successful'
     })
   } catch (error: any) {
     return next(new ErrorHandler(error.message, 400))
