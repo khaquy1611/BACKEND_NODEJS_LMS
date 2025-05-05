@@ -1,16 +1,17 @@
 import mongoose, { Document, Model, Schema } from 'mongoose'
+import { IUser } from './user.model'
 
-interface IComment extends Document {
-  user: object
-  comment: string
-  commentReplies?: IComment[]
+export interface IComment extends Document {
+  user: IUser
+  question: string
+  questionReplies: IComment[]
 }
 
 interface IReview extends Document {
-  user: object
-  rating: number
+  user: IUser
+  rating?: number
   comment: string
-  commentReplies: IComment[]
+  commentReplies?: IReview[]
 }
 
 interface ILink extends Document {
@@ -31,49 +32,54 @@ interface ICourseData extends Document {
   questions: IComment[]
 }
 
-interface ICourse extends Document {
+export interface ICourse extends Document {
   name: string
   description: string
+  categories: string
   price: number
   estimatedPrice?: number
-  thumbnail?: object
+  thumbnail: object
   tags: string
   level: string
   demoUrl: string
-  benefits: {
-    title: string
-  }[]
-  prerequisites: {
-    title: string
-  }[]
-  reviews?: IReview[]
+  benefits: { title: string }[]
+  prerequisites: { title: string }[]
+  reviews: IReview[]
   courseData: ICourseData[]
   ratings?: number
-  purchased?: number
+  purchased: number
 }
 
-const reviewSchema = new Schema<IReview>({
-  user: Object,
-  rating: {
-    type: Number,
-    default: 0
+const reviewSchema = new Schema<IReview>(
+  {
+    user: Object,
+    rating: {
+      type: Number,
+      default: 0
+    },
+    comment: String,
+    commentReplies: [Object]
   },
-  comment: String
-})
+  { timestamps: true }
+)
 
 const linkSchema = new Schema<ILink>({
   title: String,
   url: String
 })
 
-const commentSchema = new Schema<IComment>({
-  user: Object,
-  comment: String,
-  commentReplies: [Object]
-})
+const commentSchema = new Schema<IComment>(
+  {
+    user: Object,
+    question: String,
+    questionReplies: [Object]
+  },
+  { timestamps: true }
+)
 
 const courseDataSchema = new Schema<ICourseData>({
   videoUrl: String,
+  videoThumbnail: Object,
   title: String,
   videoSection: String,
   description: String,
@@ -93,6 +99,9 @@ const courseSchema = new Schema<ICourse>(
     description: {
       type: String,
       required: true
+    },
+    categories: {
+      type: String,
     },
     price: {
       type: Number,

@@ -1,6 +1,8 @@
 import express from 'express'
 import { authorizeRole, isAuthenticated } from '~/middleware/auth'
 import {
+  addAnwser,
+  addQuestion,
   editCourse,
   getAllCourses,
   getCourseByUser,
@@ -15,5 +17,7 @@ router.put('/edit-course/:id', isAuthenticated, authorizeRole('admin'), editCour
 router.get('/get-course/:id', getSingleCourse)
 router.get('/get-course', getAllCourses)
 router.get('/get-course-content/:id', isAuthenticated, getCourseByUser)
+router.put('/add-question', isAuthenticated, addQuestion)
+router.put('/add-answer', isAuthenticated, addAnwser)
 
 export default router
