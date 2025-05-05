@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import userModel, { IUser } from './../models/user.mode'
+import userModel, { IUser } from '../models/user.model'
 import ErrorHandler from '~/errors/ErrorHandler'
 import catchAsyncErrors from '~/middleware/catchAsyncErrors'
 import {
@@ -19,7 +19,7 @@ import { sendEmail, sendToken } from '~/utils'
 import { redis } from '~/config/redis'
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { accessTokenOptions, refreshTokenOptions } from '~/config'
-import { getUserById } from '~/services/user.services'
+import { getUserById } from '~/services/user.service'
 import cloudinary from 'cloudinary'
 
 export const registerUser = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
@@ -51,11 +51,16 @@ export const registerUser = catchAsyncErrors(async (req: Request, res: Response,
         message: 'Registration successful! Please check your email to activate your account.',
         accessToken: activationToken.token
       })
-    } catch (error: any) {
+    } catch (error) {
+      if (error instanceof Error) {
+        return next(new ErrorHandler(`${error.message}`, 400))
+      }
+    }
+  } catch (error) {
+    if (error instanceof Error) {
       return next(new ErrorHandler(`${error.message}`, 400))
     }
-  } catch (error: any) {
-    return next(new ErrorHandler(`${error.message}`, 400))
+    return next(new ErrorHandler('An error occurred', 400))
   }
 })
 
@@ -85,8 +90,11 @@ export const activateUser = catchAsyncErrors(async (req: Request, res: Response,
         message: 'User activated successfully'
       })
     }
-  } catch (error: any) {
-    return next(new ErrorHandler(`${error.message}`, 400))
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(`${error.message}`, 400))
+    }
+    return next(new ErrorHandler('An error occurred', 400))
   }
 })
 
@@ -106,8 +114,11 @@ export const loginUser = catchAsyncErrors(async (req: Request, res: Response, ne
     }
 
     sendToken(user, 200, res, 'Login successful')
-  } catch (error: any) {
-    return next(new ErrorHandler(`${error.message}`, 400))
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(`${error.message}`, 400))
+    }
+    return next(new ErrorHandler('An error occurred', 400))
   }
 })
 
@@ -122,8 +133,11 @@ export const logoutUser = catchAsyncErrors(async (req: Request, res: Response, n
       success: true,
       message: 'Logout successful'
     })
-  } catch (error: any) {
-    return next(new ErrorHandler(`${error.message}`, 400))
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(`${error.message}`, 400))
+    }
+    return next(new ErrorHandler('An error occurred', 400))
   }
 })
 
@@ -158,8 +172,11 @@ export const updateAccessToken = catchAsyncErrors(async (req: Request, res: Resp
       message: 'Success',
       accessToken
     })
-  } catch (error: any) {
-    return next(new ErrorHandler(`${error.message}`, 400))
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(`${error.message}`, 400))
+    }
+    return next(new ErrorHandler('An error occurred', 400))
   }
 })
 
@@ -171,8 +188,11 @@ export const getUserInffo = catchAsyncErrors(async (req: Request, res: Response,
       return next(new ErrorHandler('User ID not found', 400))
     }
     getUserById(userId, res)
-  } catch (error: any) {
-    return next(new ErrorHandler(error.message, 400))
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
+    return next(new ErrorHandler('An error occurred', 400))
   }
 })
 
@@ -196,8 +216,11 @@ export const socialAuth = catchAsyncErrors(async (req: Request, res: Response, n
     } else {
       sendToken(user, 200, res, 'success')
     }
-  } catch (error: any) {
-    return next(new ErrorHandler(error.message, 400))
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
+    return next(new ErrorHandler('An error occurred', 400))
   }
 })
 
@@ -231,8 +254,11 @@ export const updateUserInfo = catchAsyncErrors(async (req: Request, res: Respons
       success: true,
       user
     })
-  } catch (error: any) {
-    return next(new ErrorHandler(error.message, 400))
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
+    return next(new ErrorHandler('An error occurred', 400))
   }
 })
 
@@ -265,8 +291,11 @@ export const updatePassWord = catchAsyncErrors(async (req: Request, res: Respons
       success: true,
       user
     })
-  } catch (error: any) {
-    return next(new ErrorHandler(error.message, 400))
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
+    return next(new ErrorHandler('An error occurred', 400))
   }
 })
 
@@ -312,8 +341,10 @@ export const updateProfilePicture = catchAsyncErrors(async (req: Request, res: R
       success: true,
       user
     })
-  } catch (error: any) {
-    return next(new ErrorHandler(error.message, 400))
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
   }
 })
 
@@ -348,13 +379,18 @@ export const forgotPassword = catchAsyncErrors(async (req: Request, res: Respons
         success: true,
         message: 'Password reset email sent successfully'
       })
-    } catch (error: any) {
+    } catch (error) {
       // If email sending fails, remove token from Redis
       await redis.del(`resetToken:${user._id}`)
-      return next(new ErrorHandler(`Failed to send email: ${error.message}`, 500))
+      if (error instanceof Error) {
+        return next(new ErrorHandler(`Failed to send email: ${error.message}`, 500))
+      }
     }
-  } catch (error: any) {
-    return next(new ErrorHandler(error.message, 400))
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
+    return next(new ErrorHandler('An error occurred', 400))
   }
 })
 
@@ -371,7 +407,10 @@ export const resetPassword = catchAsyncErrors(async (req: Request, res: Response
     let decoded
     try {
       decoded = jwt.verify(resetToken, process.env.RESET_PASSWORD_SECRET as string) as JwtPayload
-    } catch (error: any) {
+    } catch (error) {
+      if (error instanceof Error) {
+        return next(new ErrorHandler('Invalid or expired reset token', 400))
+      }
       return next(new ErrorHandler('Invalid or expired reset token', 400))
     }
 
@@ -407,7 +446,10 @@ export const resetPassword = catchAsyncErrors(async (req: Request, res: Response
       success: true,
       message: 'Password reset successful'
     })
-  } catch (error: any) {
-    return next(new ErrorHandler(error.message, 400))
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
+    return next(new ErrorHandler('An error occurred', 400))
   }
 })

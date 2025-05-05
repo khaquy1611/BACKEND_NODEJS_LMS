@@ -1,4 +1,5 @@
-import { IUser } from '~/models/user.mode'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { IUser } from '~/models/user.model'
 
 export interface IRegistrationBody {
   name: string
@@ -66,4 +67,8 @@ export interface IForgotPasswordRequest {
 export interface IResetPasswordRequest {
   resetToken: string
   password: string
+}
+
+export interface AppError {
+  message: string
 }

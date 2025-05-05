@@ -9,26 +9,17 @@ export const isAuthenticated = catchAsyncErrors(async (req: Request, res: Respon
   const accessToken = req.cookies.access_token as string
 
   if (!accessToken) {
-    return res.status(401).json({
-      success: false,
-      message: 'Please login to access this resource'
-    })
+    return next(new ErrorHandler('Please login to access this resource', 401))
   }
 
   const decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET as string) as JwtPayload
   if (!decoded) {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid or expired token'
-    })
+    return next(new ErrorHandler('Invalid or expired token', 401))
   }
 
   const user = await redis.get(decoded.id)
   if (!user) {
-    return res.status(401).json({
-      success: false,
-      message: 'User not found'
-    })
+    return next(new ErrorHandler('User not found', 401))
   }
 
   req.user = JSON.parse(user)

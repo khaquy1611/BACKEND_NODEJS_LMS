@@ -1,7 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
-import webRoutes from '~/routes/web'
+import apiRoutes from '~/routes/api'
 import ErrorMiddleWare from '~/middleware/error'
 import { v2 as cloudinary } from 'cloudinary'
 
@@ -47,7 +47,7 @@ const createServer = () => {
     api_secret: process.env.CLOUD_SECRET_KEY
   })
   // API routes
-  app.use('/api/v1', webRoutes)
+  app.use('/api/v1', apiRoutes)
 
   // Handle 404 routes
   app.use((req, res) => {

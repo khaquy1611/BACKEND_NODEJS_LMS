@@ -1,6 +1,6 @@
 import { Response } from 'express'
 import { redis } from '~/config/redis'
-import userModel from '~/models/user.mode'
+import userModel from '~/models/user.model'
 
 // get user by id
 export const getUserById = async (id: string, res: Response) => {
