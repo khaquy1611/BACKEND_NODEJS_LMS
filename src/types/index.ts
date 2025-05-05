@@ -85,3 +85,12 @@ export interface IAddAnswerData {
   contentId: string
   questionId: string
 }
+
+export interface IAddReviewData {
+  comment: string
+  courseId: string
+  reviewId: string
+  review: string
+  rating: number
+  userId: string
+}

@@ -6,7 +6,7 @@ import cloudinary from 'cloudinary'
 import { createCourse } from '~/services/course.service'
 import CourseModel from '~/models/course.model'
 import { redis } from '~/config/redis'
-import { IAddAnswerData, IAddQuestionData } from '~/types'
+import { IAddAnswerData, IAddQuestionData, IAddReviewData } from '~/types'
 import mongoose from 'mongoose'
 import NotificationModel from '~/models/notification.model'
 import { sendEmail } from '~/utils'
@@ -272,6 +272,108 @@ export const addAnwser = catchAsyncErrors(async (req: Request, res: Response, ne
         }
       }
     }
+
+    res.status(200).json({
+      success: true,
+      course
+    })
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
+  }
+})
+
+export const addReview = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const userCourseList = req.user?.courses
+
+    const courseId = req.params.id
+
+    // check if courseId already exists in userCourseList based on _id
+    const courseExists = userCourseList?.some((course: any) => course._id.toString() === courseId.toString())
+
+    if (!courseExists) {
+      return next(new ErrorHandler('You are not eligible to access this course', 404))
+    }
+
+    const course = await CourseModel.findById(courseId)
+
+    const { review, rating } = req.body as IAddReviewData
+
+    const reviewData: any = {
+      user: req.user,
+      rating,
+      comment: review
+    }
+
+    course?.reviews.push(reviewData)
+
+    let avg = 0
+
+    course?.reviews.forEach((rev: any) => {
+      avg += rev.rating
+    })
+
+    if (course) {
+      course.ratings = avg / course.reviews.length // one example we have 2 reviews one is 5 another one is 4 so math working like this = 9 / 2  = 4.5 ratings
+    }
+
+    await course?.save()
+
+    await redis.set(courseId, JSON.stringify(course), 'EX', 604800) // 7days
+
+    // create notification
+    await NotificationModel.create({
+      user: req.user?._id,
+      title: 'New Review Received',
+      message: `${req.user?.name} has given a review in ${course?.name}`
+    })
+
+    res.status(200).json({
+      success: true,
+      course
+    })
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
+  }
+})
+
+// add reply in review
+export const addReplyToReview = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { comment, courseId, reviewId } = req.body as IAddReviewData
+
+    const course = await CourseModel.findById(courseId)
+
+    if (!course) {
+      return next(new ErrorHandler('Course not found', 404))
+    }
+
+    const review = course?.reviews?.find((rev: any) => rev._id.toString() === reviewId)
+
+    if (!review) {
+      return next(new ErrorHandler('Review not found', 404))
+    }
+
+    const replyData: any = {
+      user: req.user,
+      comment,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    if (!review.commentReplies) {
+      review.commentReplies = []
+    }
+
+    review.commentReplies?.push(replyData)
+
+    await course?.save()
+
+    await redis.set(courseId, JSON.stringify(course), 'EX', 604800) // 7days
 
     res.status(200).json({
       success: true,
