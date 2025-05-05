@@ -28,7 +28,7 @@ interface ICourseData extends Document {
   videoPlayer: string
   links: ILink[]
   suggestion: string
-  question: IComment[]
+  questions: IComment[]
 }
 
 interface ICourse extends Document {
@@ -81,7 +81,7 @@ const courseDataSchema = new Schema<ICourseData>({
   videoPlayer: String,
   links: [linkSchema],
   suggestion: String,
-  question: [commentSchema]
+  questions: [commentSchema]
 })
 
 const courseSchema = new Schema<ICourse>(
