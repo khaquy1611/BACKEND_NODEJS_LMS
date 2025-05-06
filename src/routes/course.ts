@@ -5,7 +5,9 @@ import {
   addQuestion,
   addReplyToReview,
   addReview,
+  deleteCourse,
   editCourse,
+  getAdminAllCourses,
   getAllCourses,
   getCourseByUser,
   getSingleCourse,
@@ -24,5 +26,7 @@ router.put('/add-answer', isAuthenticated, addAnwser)
 router.put('/add-review/:id', isAuthenticated, addReview)
 
 router.put('/add-reply', isAuthenticated, authorizeRole('admin'), addReplyToReview)
+router.get('/get-admin-courses', isAuthenticated, authorizeRole('admin'), getAdminAllCourses)
+router.delete('/delete-course/:id', isAuthenticated, authorizeRole('admin'), deleteCourse)
 
 export default router

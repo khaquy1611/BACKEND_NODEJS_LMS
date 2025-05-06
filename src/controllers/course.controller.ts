@@ -3,7 +3,8 @@ import catchAsyncErrors from '~/middleware/catchAsyncErrors'
 import { Request, Response, NextFunction } from 'express'
 import ErrorHandler from '~/errors/ErrorHandler'
 import cloudinary from 'cloudinary'
-import { createCourse } from '~/services/course.service'
+import axios from 'axios'
+import { createCourse, getAllCoursesService } from '~/services/course.service'
 import CourseModel from '~/models/course.model'
 import { redis } from '~/config/redis'
 import { IAddAnswerData, IAddQuestionData, IAddReviewData } from '~/types'
@@ -322,7 +323,6 @@ export const addReview = catchAsyncErrors(async (req: Request, res: Response, ne
     await course?.save()
 
     await redis.set(courseId, JSON.stringify(course), 'EX', 604800) // 7days
-
     // create notification
     await NotificationModel.create({
       user: req.user?._id,
@@ -379,7 +379,69 @@ export const addReplyToReview = catchAsyncErrors(async (req: Request, res: Respo
       success: true,
       course
     })
-  } catch (error: any) {
-    return next(new ErrorHandler(error.message, 500))
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
+  }
+})
+
+// get all courses --- only for admin
+export const getAdminAllCourses = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    getAllCoursesService(res)
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
+  }
+})
+
+// Delete Course --- only for admin
+export const deleteCourse = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params
+
+    const course = await CourseModel.findById(id)
+
+    if (!course) {
+      return next(new ErrorHandler('course not found', 404))
+    }
+
+    await course.deleteOne({ id })
+
+    await redis.del(id)
+
+    res.status(200).json({
+      success: true,
+      message: 'course deleted successfully'
+    })
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
+  }
+})
+
+// generate video url
+export const generateVideoUrl = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { videoId } = req.body
+    const response = await axios.post(
+      `https://dev.vdocipher.com/api/videos/${videoId}/otp`,
+      { ttl: 300 },
+      {
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Apisecret ${process.env.VDOCIPHER_API_SECRET}`
+        }
+      }
+    )
+    res.json(response.data)
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
   }
 })

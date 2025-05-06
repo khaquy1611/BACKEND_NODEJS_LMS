@@ -33,10 +33,13 @@
     "typescript-eslint": "^8.31.0"
   },
   "dependencies": {
+    "@types/axios": "^0.14.4",
     "@types/bcryptjs": "^3.0.0",
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/jsonwebtoken": "^9.0.9",
+    "@types/node-cron": "^3.0.11",
+    "axios": "^1.9.0",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.6.0",
     "cookie-parser": "^1.4.7",
@@ -48,6 +51,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.14.0",
     "mysql2": "^3.14.0",
+    "node-cron": "^3.0.3",
     "nodemailer": "^6.10.1"
   }
 }
