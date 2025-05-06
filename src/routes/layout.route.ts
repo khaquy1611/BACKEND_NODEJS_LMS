@@ -10,6 +10,6 @@ router.put('/edit-layout', isAuthenticated, authorizeRole('admin'), editLayout)
 
 router.get('/get-layout/:type', getLayoutByType)
 
-router.delete('/delete-layout/:type', deleteLayout);
+router.delete('/delete-layout/:type', deleteLayout)
 
 export default router
