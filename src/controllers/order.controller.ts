@@ -7,7 +7,7 @@ import ErrorHandler from '~/errors/ErrorHandler'
 import { redis } from '~/config/redis'
 import NotificationModel from '~/models/notification.model'
 import userModel from '~/models/user.model'
-import { newOrder } from '~/services/order.service'
+import { getAllOrdersService, newOrder } from '~/services/order.service'
 
 // create order
 export const createOrder = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
@@ -81,6 +81,17 @@ export const createOrder = catchAsyncErrors(async (req: Request, res: Response, 
     await course.save()
 
     newOrder(data, res, next)
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
+  }
+})
+
+// get All orders --- only for admin
+export const getAllOrders = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    getAllOrdersService(res)
   } catch (error) {
     if (error instanceof Error) {
       return next(new ErrorHandler(error.message, 400))

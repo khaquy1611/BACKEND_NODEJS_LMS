@@ -11,9 +11,12 @@ import {
   updatePassWord,
   updateProfilePicture,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  getAllUsers,
+  updateUserRole,
+  deleteUser
 } from '../controllers/user.controller'
-import { isAuthenticated } from '~/middleware/auth'
+import { authorizeRole, isAuthenticated } from '~/middleware/auth'
 const router = express.Router()
 
 router.post('/register', registerUser)
@@ -28,5 +31,11 @@ router.put('/update-user-password', isAuthenticated, updatePassWord)
 router.put('/updated-profile', isAuthenticated, updateProfilePicture)
 router.post('/password/forgot', forgotPassword)
 router.post('/password/reset', resetPassword)
+
+router.get('/get-users', isAuthenticated, authorizeRole('admin'), getAllUsers)
+
+router.put('/update-user', isAuthenticated, authorizeRole('admin'), updateUserRole)
+
+router.delete('/delete-user/:id', isAuthenticated, authorizeRole('admin'), deleteUser)
 
 export default router

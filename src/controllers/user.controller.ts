@@ -19,7 +19,7 @@ import { sendEmail, sendToken } from '~/utils'
 import { redis } from '~/config/redis'
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import { accessTokenOptions, refreshTokenOptions } from '~/config'
-import { getUserById } from '~/services/user.service'
+import { getAllUsersService, getUserById, updateUserRoleService } from '~/services/user.service'
 import cloudinary from 'cloudinary'
 
 export const registerUser = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
@@ -451,5 +451,63 @@ export const resetPassword = catchAsyncErrors(async (req: Request, res: Response
       return next(new ErrorHandler(error.message, 400))
     }
     return next(new ErrorHandler('An error occurred', 400))
+  }
+})
+
+// get all users --- only for admin
+export const getAllUsers = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    getAllUsersService(res)
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
+  }
+})
+
+// update user role --- only for admin
+export const updateUserRole = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, role } = req.body
+    const isUserExist = await userModel.findOne({ email })
+    if (isUserExist) {
+      const id = isUserExist._id
+      updateUserRoleService(res, id, role)
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'User not found'
+      })
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
+  }
+})
+
+// Delete user --- only for admin
+export const deleteUser = catchAsyncErrors(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params
+
+    const user = await userModel.findById(id)
+
+    if (!user) {
+      return next(new ErrorHandler('User not found', 404))
+    }
+
+    await user.deleteOne({ id })
+
+    await redis.del(id)
+
+    res.status(200).json({
+      success: true,
+      message: 'User deleted successfully'
+    })
+  } catch (error) {
+    if (error instanceof Error) {
+      return next(new ErrorHandler(error.message, 400))
+    }
   }
 })
