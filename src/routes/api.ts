@@ -1,10 +1,11 @@
 // routes/index.js
 import express from 'express'
-import userRoutes from './user'
-import courseRoutes from './course'
-import orderRoutes from './order'
-import notifiRoutes from './notification'
-import analyticsRoutes from './analytics'
+import userRoutes from './user.route'
+import courseRoutes from './course.route'
+import orderRoutes from './order.route'
+import notifiRoutes from './notification.route'
+import analyticsRoutes from './analytics.route'
+import layoutRoutes from './layout.route'
 // You can add other route imports here like:
 // import productRoutes from './product.routes'
 
@@ -16,6 +17,7 @@ router.use('/courses', courseRoutes)
 router.use('/order', orderRoutes)
 router.use('/notification', notifiRoutes)
 router.use('/analytics', analyticsRoutes)
+router.use('/layout', layoutRoutes)
 // etc.
 
 export default router
