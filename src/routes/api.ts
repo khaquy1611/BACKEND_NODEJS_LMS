@@ -4,6 +4,7 @@ import userRoutes from './user'
 import courseRoutes from './course'
 import orderRoutes from './order'
 import notifiRoutes from './notification'
+import analyticsRoutes from './analytics'
 // You can add other route imports here like:
 // import productRoutes from './product.routes'
 
@@ -14,6 +15,7 @@ router.use('/users', userRoutes)
 router.use('/courses', courseRoutes)
 router.use('/order', orderRoutes)
 router.use('/notification', notifiRoutes)
+router.use('/analytics', analyticsRoutes)
 // etc.
 
 export default router

@@ -94,3 +94,8 @@ export interface IAddReviewData {
   rating: number
   userId: string
 }
+
+export interface MonthData {
+  month: string
+  count: number
+}
